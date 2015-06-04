@@ -165,16 +165,15 @@ authenticate_client(request *r)
 		break;
 
 	case AUTH_DENIED:
-		/* Central server said invalid token */
-		debug(LOG_INFO, "Got DENIED from central server authenticating token %s from %s at %s - deleting from firewall and redirecting them to denied message", client->token, client->ip, client->mac);
-		fw_deny(client->ip, client->mac, FW_MARK_KNOWN);
-		safe_asprintf(&urlFragment, "%smessage=%s",
-			auth_server->authserv_msg_script_path_fragment,
-			GATEWAY_MESSAGE_DENIED
-		);
-		http_send_redirect_to_auth(r, urlFragment, "Redirect to denied message");
-		free(urlFragment);
-		break;
+	/* Logged in successfully as a regular account */
+        debug(LOG_INFO, "Got ALLOWED from central server authenticating token %s from %s at %s - "
+              "adding to firewall and redirecting them to portal", client->token, client->ip, client->mac);
+        fw_allow(client, FW_MARK_KNOWN);
+        served_this_session++;
+        safe_asprintf(&urlFragment, "%sgw_id=%s", auth_server->authserv_portal_script_path_fragment, config->gw_id);
+        http_send_redirect_to_auth(r, urlFragment, "Redirect to portal");
+        free(urlFragment);
+        break;
 
     case AUTH_VALIDATION:
 		/* They just got validated for X minutes to check their email */
